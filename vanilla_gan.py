@@ -55,42 +55,29 @@ gan_estimator = tfgan.estimator.GANEstimator(
     use_loss_summaries=True)
 
 
-def input():
-    def get_generator(BATCH_SIZE, LATENT_DIM):
-        def generator():
-            while True:
-                (x_train, y_train), (x_test, y_test) = mnist.load_data()
-                images = (np.expand_dims(x_train, axis=-1)) / 255.
-                images = images.astype(np.float32)
-                noise = np.random.randn(60000, LATENT_DIM).reshape(60000, LATENT_DIM)
-                idx = np.random.permutation(60000)
-                noise = noise[idx]
-                images = images[idx]
-                for i in range(60000):
-                    yield (noise[i], images[i])
-        return generator
-
-    generator = get_generator(BATCH_SIZE, LATENT_DIM)
-    Dataset_2 = tf.data.Dataset.from_generator(
-        generator, output_types=(tf.float32, tf.float32),
+def batched_dataset(BATCH_SIZE, LATENT_DIM, generator_fn):
+    Dataset = tf.data.Dataset.from_generator(
+        lambda: generator_fn(LATENT_DIM), output_types=(tf.float32, tf.float32),
         output_shapes=(tf.TensorShape((LATENT_DIM,)), tf.TensorShape((28, 28, 1))))
-    return Dataset_2.batch(BATCH_SIZE)
+    return Dataset.batch(BATCH_SIZE)
 
 
-for loop in range(0, 15):
-    gan_estimator.train(input, steps=ITER)
-    result = gan_estimator.predict(input)
-    images = []
-    for i, image in enumerate(result):
-        images.append(image*255.)
-        if i == 15:
-            images = np.array(images)
-            break
-    plot_images(images, fname=dir + "/images_%i.png" % loop)
+def generator(LATENT_DIM):
+    while True:
+        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+        images = (np.expand_dims(x_train, axis=-1)) / 255.
+        images = images.astype(np.float32)
+        noise = np.random.randn(60000, LATENT_DIM).reshape(60000, LATENT_DIM)
+        idx = np.random.permutation(60000)
+        noise = noise[idx]
+        images = images[idx]
+        for i in range(60000):
+            yield (noise[i], images[i])
 
-for loop in range(15, 25):
-    gan_estimator.train(input, steps=10*ITER)
-    result = gan_estimator.predict(input)
+
+for loop in range(0, 150):
+    gan_estimator.train(lambda: batched_dataset(BATCH_SIZE, LATENT_DIM, generator), steps=ITER)
+    result = gan_estimator.predict(lambda: batched_dataset(BATCH_SIZE, LATENT_DIM, generator))
     images = []
     for i, image in enumerate(result):
         images.append(image*255.)
