@@ -84,4 +84,4 @@ for loop in range(0, 150):
         if i == 15:
             images = np.array(images)
             break
-    plot_images(images, fname=dir + "/images_%i.png" % loop)
+    plot_images(images, fname=dir + "/images_%.3i.png" % loop)
