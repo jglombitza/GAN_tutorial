@@ -14,7 +14,7 @@ LOG_DIR = "."
 GP = 10
 N_CRIT = 5
 
-dir = make_dir(LOG_DIR, "CIFAR_vannilla")
+dir = make_dir(LOG_DIR, "CIFAR_vanilla_GAN")
 
 
 # Build the generator and discriminator.
