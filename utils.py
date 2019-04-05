@@ -10,7 +10,7 @@ def make_dir(LOG_DIR, name=""):
     import time
     import datetime
     daytime = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
-    folder = LOG_DIR + "/"+ name + "_train_" + daytime.replace(" ", "_")
+    folder = LOG_DIR + "/" + name + "_train_" + daytime.replace(" ", "_")
     os.makedirs(folder)
     return(folder)
 
@@ -30,7 +30,6 @@ def plot_images(images, figsize=(10, 10), fname=None):
         if img.shape[-1] == 3:
             img = img.astype(np.uint8)
             plt.imshow(img)
-            print("here")
         else:
             img = np.squeeze(img)
             plt.imshow(img, cmap=plt.cm.Greys)
@@ -40,6 +39,43 @@ def plot_images(images, figsize=(10, 10), fname=None):
     if fname is not None:
         plt.savefig(fname)
     plt.close()
+
+
+def rectangular_array(n=15):
+    """ Return x,y coordinates for rectangular array with n^2 stations. """
+    n0 = (n - 1) / 2
+    return (np.mgrid[0:n, 0:n].astype(float) - n0)
+
+
+def plot_signal_map(footprint, axis, label, event):
+    """Plot a map *footprint* for an detector array specified by *v_stations*. """
+    xd, yd = rectangular_array()
+#    xd, yd = triangular_array()
+    filter = footprint != 0
+    axis.scatter(xd[~filter], yd[~filter], c='grey', s=70, alpha=0.1, label="silent")
+    axis.set_title("Layer %i" % (label+1), loc='right')
+    axis.set_title('Event %i' % (event+1), loc='left')
+    circles = axis.scatter(xd[filter], yd[filter], c=footprint[filter], s=80, alpha=1, label="loud", norm=matplotlib.colors.LogNorm(vmin=1, vmax=500))
+    # cbar = plt.colorbar(circles, ax=axis)
+    # cbar.set_label('signal [a.u.]')
+    axis.set_aspect('equal')
+    return circles
+
+
+def plot_calo_images(images, fname):
+    fig = plt.figure(figsize=(11, 10))
+    grid = matplotlib.gridspec.GridSpec(3, 1)
+    for event, (image, sub_grid) in enumerate(zip(images, grid)):
+        layers_grid = matplotlib.gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=sub_grid)
+        for id, layer in enumerate(layers_grid):
+            ax = plt.subplot(layer)
+            scat = plot_signal_map(image[:, :, id], ax, label=id, event=event)
+            plt.tight_layout()
+    fig.subplots_adjust(bottom=0.05, top=0.95, left=0.05, right=0.85)
+    cbar_ax = fig.add_axes([0.9, 0.05, 0.05, 0.9])
+    cbar = fig.colorbar(scat, cax=cbar_ax)
+    cbar.set_label('signal [a.u.]')
+    fig.savefig(fname, dpi=120)
 
 
 def spectral_norm(W, use_gamma=False, factor=None, name='sn'):
