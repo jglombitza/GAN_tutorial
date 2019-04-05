@@ -15,16 +15,27 @@ def make_dir(LOG_DIR, name=""):
     return(folder)
 
 
+def BGR2RGB(image):
+    image[:, :, [0, 2]] = image[:, :, [2, 0]]
+    return image
+
+
 def plot_images(images, figsize=(10, 10), fname=None):
     """ Plot some images """
     n_examples = len(images)
     dim = np.ceil(np.sqrt(n_examples))
     plt.figure(figsize=figsize)
-    for i in range(n_examples):
+    for i, img in enumerate(images):
         plt.subplot(dim, dim, i + 1)
-        img = np.squeeze(images[i])
-        plt.imshow(img, cmap=plt.cm.Greys)
+        if img.shape[-1] == 3:
+            img = img.astype(np.uint8)
+            plt.imshow(img)
+            print("here")
+        else:
+            img = np.squeeze(img)
+            plt.imshow(img, cmap=plt.cm.Greys)
         plt.axis('off')
+        plt.imshow(img)
     plt.tight_layout()
     if fname is not None:
         plt.savefig(fname)
@@ -130,6 +141,26 @@ def conv2d_sn(inputs, filters, kernel_size, name,
               use_gamma=False,
               factor=None):
     return _conv_sn(tf.nn.conv2d, inputs, filters, kernel_size, name,
+                    strides=strides,
+                    padding=padding,
+                    activation=activation,
+                    use_bias=use_bias,
+                    kernel_initializer=kernel_initializer,
+                    bias_initializer=bias_initializer,
+                    use_gamma=use_gamma,
+                    factor=factor)
+
+
+def conv2d_tanspose_sn(inputs, filters, kernel_size, name,
+                       strides=(1, 1),
+                       padding='valid',
+                       activation=None,
+                       use_bias=True,
+                       kernel_initializer=tf.glorot_uniform_initializer(),
+                       bias_initializer=tf.zeros_initializer(),
+                       use_gamma=False,
+                       factor=None):
+    return _conv_sn(tf.nn.conv2d_transpose, inputs, filters, kernel_size, name,
                     strides=strides,
                     padding=padding,
                     activation=activation,
