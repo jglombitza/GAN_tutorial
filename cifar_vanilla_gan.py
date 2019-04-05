@@ -14,7 +14,7 @@ LOG_DIR = "."
 GP = 10
 N_CRIT = 5
 
-dir = make_dir(LOG_DIR, "CIFAR_WGAN_GP")
+dir = make_dir(LOG_DIR, "CIFAR_vannilla")
 
 
 # Build the generator and discriminator.
@@ -59,26 +59,14 @@ def discriminator_fn(x, drop_rate=0.25):
     return x
 
 
-def discrimintator_loss(model, add_summaries=True):
-
-    loss = tf.contrib.gan.losses.wasserstein_discriminator_loss(model, add_summaries=add_summaries)
-    gp_loss = GP * tf.contrib.gan.losses.wasserstein_gradient_penalty(model, epsilon=1e-10, one_sided=True, add_summaries=add_summaries)
-    loss += gp_loss
-
-    if add_summaries:
-        tf.summary.scalar('discriminator_loss', loss)
-
-    return loss
-
-
 gan_estimator = tfgan.estimator.GANEstimator(
     dir,
     generator_fn=generator_fn,
     discriminator_fn=discriminator_fn,
-    generator_loss_fn=tfgan.losses.wasserstein_generator_loss,
-    discriminator_loss_fn=discrimintator_loss,
-    generator_optimizer=tf.train.AdamOptimizer(GEN_LR, 0.5, 0.9),
-    discriminator_optimizer=tf.train.AdamOptimizer(DIS_LR, 0.5, 0.9),
+    generator_loss_fn=tfgan.losses.modified_generator_loss,
+    discriminator_loss_fn=tfgan.losses.modified_discriminator_loss,
+    generator_optimizer=tf.train.AdamOptimizer(GEN_LR, 0.5),
+    discriminator_optimizer=tf.train.AdamOptimizer(DIS_LR, 0.5),
     get_hooks_fn=tfgan.get_sequential_train_hooks(tfgan.GANTrainSteps(1, N_CRIT)),
     config=tf.estimator.RunConfig(save_summary_steps=100, keep_checkpoint_max=3, save_checkpoints_steps=10000),
     use_loss_summaries=True)
@@ -105,12 +93,18 @@ def generator(LATENT_DIM):
             yield (noise[i], images[i])
 
 
+import itertools
+images = np.array(list(itertools.islice(generator(LATENT_DIM), 16)))[:, 1]
+images = 255. * (images / 2. + 0.5)
+plot_images(images, fname=dir + "/original_images.png")
+
+
 for loop in range(0, 600):
     gan_estimator.train(lambda: batched_dataset(BATCH_SIZE, LATENT_DIM, generator), steps=ITER)
     result = gan_estimator.predict(lambda: batched_dataset(BATCH_SIZE, LATENT_DIM, generator))
     images = []
     for i, image in enumerate(result):
-        images.append(255 * (image / 2. + 0.5))
+        images.append(255. * (image / 2. + 0.5))
         if i == 15:
             images = np.array(images)
             break
