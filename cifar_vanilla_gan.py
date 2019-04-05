@@ -12,7 +12,6 @@ DIS_LR = 0.0001
 ITER = 1000
 LOG_DIR = "."
 GP = 10
-N_CRIT = 5
 
 dir = make_dir(LOG_DIR, "CIFAR_vanilla_GAN")
 
@@ -67,7 +66,6 @@ gan_estimator = tfgan.estimator.GANEstimator(
     discriminator_loss_fn=tfgan.losses.modified_discriminator_loss,
     generator_optimizer=tf.train.AdamOptimizer(GEN_LR, 0.5),
     discriminator_optimizer=tf.train.AdamOptimizer(DIS_LR, 0.5),
-    get_hooks_fn=tfgan.get_sequential_train_hooks(tfgan.GANTrainSteps(1, N_CRIT)),
     config=tf.estimator.RunConfig(save_summary_steps=100, keep_checkpoint_max=3, save_checkpoints_steps=10000),
     use_loss_summaries=True)
 
