@@ -2,6 +2,7 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 import tensorflow as tf
+from tensorflow.python.layers.utils import deconv_output_length
 import numpy as np
 
 
@@ -142,14 +143,25 @@ def _conv_sn(conv, inputs, filters, kernel_size, name,
              kernel_initializer=tf.glorot_uniform_initializer(),
              bias_initializer=tf.zeros_initializer(),
              use_gamma=False,
-             factor=None):
+             factor=None, transposed=False):
     input_shape = inputs.get_shape().as_list()
-    input_dim = int(input_shape[-1])  # channels_last
-
+    c_axis, h_axis, w_axis = 3, 1, 2  # channels last
+    input_dim = input_shape[c_axis]
     with tf.variable_scope(name):
-        kernel_shape = kernel_size + (input_dim, filters)
-        kernel = tf.get_variable('kernel', shape=kernel_shape, initializer=kernel_initializer)
-        outputs = conv(inputs, spectral_norm(kernel, use_gamma=use_gamma, factor=factor), strides=(1, *strides, 1), padding=padding.upper())
+        if transposed is True:
+            kernel_shape = kernel_size + (filters, input_dim)
+            kernel = tf.get_variable('kernel', shape=kernel_shape, initializer=kernel_initializer)
+            height, width = input_shape[h_axis], input_shape[w_axis]
+            kernel_h, kernel_w = kernel_size
+            stride_h, stride_w = strides
+            out_height = deconv_output_length(height, kernel_h, padding, stride_h)
+            out_width = deconv_output_length(width, kernel_w, padding, stride_w)
+            output_shape = (input_shape[0], out_height, out_width, filters)
+            outputs = conv(inputs, spectral_norm(kernel, use_gamma=use_gamma, factor=factor), tf.stack(output_shape), strides=(1, *strides, 1), padding=padding.upper())
+        else:
+            kernel_shape = kernel_size + (input_dim, filters)
+            kernel = tf.get_variable('kernel', shape=kernel_shape, initializer=kernel_initializer)
+            outputs = conv(inputs, spectral_norm(kernel, use_gamma=use_gamma, factor=factor), strides=(1, *strides, 1), padding=padding.upper())
         if use_bias is True:
             bias = tf.get_variable('bias', shape=(filters,), initializer=bias_initializer)
             outputs = tf.nn.bias_add(outputs, bias)
@@ -201,15 +213,16 @@ def conv2d_sn(inputs, filters, kernel_size, name,
                     factor=factor)
 
 
-def conv2d_tanspose_sn(inputs, filters, kernel_size, name,
-                       strides=(1, 1),
-                       padding='valid',
-                       activation=None,
-                       use_bias=True,
-                       kernel_initializer=tf.glorot_uniform_initializer(),
-                       bias_initializer=tf.zeros_initializer(),
-                       use_gamma=False,
-                       factor=None):
+def conv2d_transpose_sn(inputs, filters, kernel_size, name,
+                        strides=(1, 1),
+                        padding='valid',
+                        activation=None,
+                        use_bias=True,
+                        kernel_initializer=tf.glorot_uniform_initializer(),
+                        bias_initializer=tf.zeros_initializer(),
+                        use_gamma=False,
+                        factor=None):
+
     return _conv_sn(tf.nn.conv2d_transpose, inputs, filters, kernel_size, name,
                     strides=strides,
                     padding=padding,
@@ -218,4 +231,4 @@ def conv2d_tanspose_sn(inputs, filters, kernel_size, name,
                     kernel_initializer=kernel_initializer,
                     bias_initializer=bias_initializer,
                     use_gamma=use_gamma,
-                    factor=factor)
+                    factor=factor, transposed=True)

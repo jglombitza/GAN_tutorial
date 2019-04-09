@@ -1,14 +1,14 @@
 import tensorflow as tf
 import numpy as np
-from utils import make_dir, plot_images, conv2d_tanspose_sn, conv2d_sn, dense_sn
+from utils import make_dir, plot_images, conv2d_transpose_sn, conv2d_sn, dense_sn
 layers = tf.layers
 tfgan = tf.contrib.gan
 
 
 BATCH_SIZE = 64
 LATENT_DIM = 128
-GEN_LR = 0.0001
-DIS_LR = 0.0001
+GEN_LR = 0.0002
+DIS_LR = 0.0002
 ITER = 1000
 LOG_DIR = "."
 GP = 10
