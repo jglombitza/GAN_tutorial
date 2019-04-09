@@ -1,0 +1,9 @@
+*.png
+*.pbtxt
+events.out*
+model.ckpt*
+__pycache__/
+CIFAR*/
+MNIST*/
+calorimeter*/
+

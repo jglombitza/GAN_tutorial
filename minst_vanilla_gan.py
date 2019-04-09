@@ -16,7 +16,7 @@ ITER = 100
 LOG_DIR = "."
 GP = 10
 
-dir = make_dir(LOG_DIR, 'vanilla')
+dir = make_dir(LOG_DIR, 'MNIST_vanilla_GAN')
 
 
 # Build the generator and discriminator.
