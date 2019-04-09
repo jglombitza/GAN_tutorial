@@ -75,7 +75,7 @@ def generator(LATENT_DIM):
             yield (noise[i], images[i])
 
 
-for loop in range(0, 150):
+for loop in range(0, 200):
     gan_estimator.train(lambda: batched_dataset(BATCH_SIZE, LATENT_DIM, generator), steps=ITER)
     result = gan_estimator.predict(lambda: batched_dataset(BATCH_SIZE, LATENT_DIM, generator))
     images = []

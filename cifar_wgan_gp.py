@@ -6,15 +6,15 @@ tfgan = tf.contrib.gan
 
 
 BATCH_SIZE = 64
-LATENT_DIM = 128
-GEN_LR = 0.0001
-DIS_LR = 0.0001
-ITER = 1000
+LATENT_DIM = 64
+GEN_LR = 0.0002
+DIS_LR = 0.0004
+ITER = 2000
 LOG_DIR = "."
 GP = 10
-N_CRIT = 5
+N_CRIT = 10
 
-dir = make_dir(LOG_DIR, "CIFAR_WGAN_GP")
+dir = make_dir(LOG_DIR, "CIFAR_10_WGAN_GP")
 
 
 # Build the generator and discriminator.
@@ -105,7 +105,7 @@ def generator(LATENT_DIM):
             yield (noise[i], images[i])
 
 
-for loop in range(0, 600):
+for loop in range(0, 50):
     gan_estimator.train(lambda: batched_dataset(BATCH_SIZE, LATENT_DIM, generator), steps=ITER)
     result = gan_estimator.predict(lambda: batched_dataset(BATCH_SIZE, LATENT_DIM, generator))
     images = []

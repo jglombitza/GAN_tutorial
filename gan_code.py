@@ -9,8 +9,8 @@ tfgan = tf.contrib.gan
 
 BATCH_SIZE = 32
 LATENT_DIM = 64
-GEN_LR = 0.001
-DIS_LR = 0.0001
+GEN_LR = 0.0002
+DIS_LR = 0.0002
 ITER = 1000
 LOG_DIR = "."
 GP = 10

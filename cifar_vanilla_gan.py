@@ -7,11 +7,10 @@ tfgan = tf.contrib.gan
 
 BATCH_SIZE = 64
 LATENT_DIM = 128
-GEN_LR = 0.0001
-DIS_LR = 0.0001
-ITER = 1000
+GEN_LR = 0.0002
+DIS_LR = 0.0002
+ITER = 2000
 LOG_DIR = "."
-GP = 10
 
 dir = make_dir(LOG_DIR, "CIFAR_vanilla_GAN")
 
@@ -97,7 +96,7 @@ images = 255. * (images / 2. + 0.5)
 plot_images(images, fname=dir + "/original_images.png")
 
 
-for loop in range(0, 600):
+for loop in range(0, 50):
     gan_estimator.train(lambda: batched_dataset(BATCH_SIZE, LATENT_DIM, generator), steps=ITER)
     result = gan_estimator.predict(lambda: batched_dataset(BATCH_SIZE, LATENT_DIM, generator))
     images = []
