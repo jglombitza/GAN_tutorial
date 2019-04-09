@@ -47,15 +47,16 @@ def rectangular_array(n=15):
     return (np.mgrid[0:n, 0:n].astype(float) - n0)
 
 
-def plot_signal_map(footprint, axis, label, event):
+def plot_signal_map(footprint, axis, label, event=None):
     """Plot a map *footprint* for an detector array specified by *v_stations*. """
     xd, yd = rectangular_array()
 #    xd, yd = triangular_array()
     filter = footprint != 0
     axis.scatter(xd[~filter], yd[~filter], c='grey', s=70, alpha=0.1, label="silent")
     axis.set_title("Layer %i" % (label+1), loc='right')
-    axis.set_title('Event %i' % (event+1), loc='left')
-    circles = axis.scatter(xd[filter], yd[filter], c=footprint[filter], s=80, alpha=1, label="loud", norm=matplotlib.colors.LogNorm(vmin=1, vmax=500))
+    if event is not None:
+        axis.set_title('Event %i' % (event+1), loc='left')
+    circles = axis.scatter(xd[filter], yd[filter], c=footprint[filter], s=80, alpha=1, label="loud", norm=matplotlib.colors.LogNorm(vmin=None, vmax=500))
     # cbar = plt.colorbar(circles, ax=axis)
     # cbar.set_label('signal [a.u.]')
     axis.set_aspect('equal')
@@ -75,6 +76,19 @@ def plot_calo_images(images, fname):
     cbar_ax = fig.add_axes([0.9, 0.05, 0.05, 0.9])
     cbar = fig.colorbar(scat, cax=cbar_ax)
     cbar.set_label('signal [a.u.]')
+    fig.savefig(fname, dpi=120)
+
+
+def plot_average_image(image, fname):
+    fig, axis = plt.subplots(1, 3, figsize=(11, 4))
+    for id, ax in enumerate(axis):
+        scat = plot_signal_map(image[:, :, id], ax, label=id)
+        plt.tight_layout()
+    fig.subplots_adjust(bottom=0.05, top=0.95, left=0.05, right=0.85)
+    cbar_ax = fig.add_axes([0.9, 0.05, 0.05, 0.9])
+    cbar = fig.colorbar(scat, cax=cbar_ax)
+    cbar.set_label('signal [a.u.]')
+    fig.suptitle("Average calorimeter images")
     fig.savefig(fname, dpi=120)
 
 

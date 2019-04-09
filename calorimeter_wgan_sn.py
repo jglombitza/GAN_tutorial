@@ -125,6 +125,6 @@ for loop in range(0, 600):
     for i, image in enumerate(result):
         images.append(10**image - 1)
         if i == 15:
-            images = np.array(images)
-            break
-        plot_calo_images(images, fname=dir + "/generated_images_%.3i.png" % loop)
+            plot_calo_images(np.array(images), fname=dir + "/generated_images_%.3i.png" % loop)
+        if i == 999:
+            plot_average_image(np.mean(np.array(images), axis=0), fname=dir + "/average_over_1000_images.png")
