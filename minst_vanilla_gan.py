@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from utils import make_dir, plot_images
+from utils import make_dir, plot_images, CookbookInit
 
 # from tensorflow import keras
 layers = tf.layers
@@ -16,7 +16,7 @@ ITER = 100
 LOG_DIR = "."
 GP = 10
 
-dir = make_dir(LOG_DIR, 'MNIST_vanilla_GAN')
+dir = CookbookInit("MNIST_vanilla_GAN")
 
 
 # Build the generator and discriminator.

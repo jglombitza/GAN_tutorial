@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from utils import make_dir, plot_images
+from utils import make_dir, plot_images, CookbookInit
 layers = tf.layers
 tfgan = tf.contrib.gan
 
@@ -12,7 +12,7 @@ DIS_LR = 0.0002
 ITER = 2000
 LOG_DIR = "."
 
-dir = make_dir(LOG_DIR, "CIFAR_vanilla_GAN")
+dir = CookbookInit("CIFAR_vanilla_GAN")
 
 
 # Build the generator and discriminator.

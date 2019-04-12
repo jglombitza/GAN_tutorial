@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from utils import make_dir, plot_calo_images, conv2d_sn, dense_sn
+from utils import make_dir, plot_calo_images, plot_average_image, conv2d_sn, dense_sn, conv2d_transpose_sn, CookbookInit
 layers = tf.layers
 tfgan = tf.contrib.gan
 
@@ -14,20 +14,20 @@ LOG_DIR = "."
 GP = 10
 N_CRIT = 5
 
-dir = make_dir(LOG_DIR, "calorimeter_snwgan")
+dir = CookbookInit("calorimeter_snwgan")
 
 
-# Build the generator and discriminator.
+# Build the calo_data_generator and discriminator.
 def generator_fn(x, latent_dim=LATENT_DIM):
-    x = layers.Dense(3 * 3 * 256, activation='relu', input_shape=(latent_dim,))(x)  #
+    x = layers.Dense(3 * 3 * 256, activation='relu')(x)  #
     x = tf.reshape(x, shape=[BATCH_SIZE, 3, 3, 256])
-    x = layers.Conv2DTranspose(256, (4, 4), strides=(2, 2), padding='same', activation='relu')(x)
+    x = conv2d_transpose_sn(x, 256, (4, 4), strides=(2, 2), padding='same', name='sn_conv_gen_transposed01', activation=tf.nn.relu)
     x = layers.BatchNormalization()(x)
-    x = layers.Conv2DTranspose(128, (3, 3), strides=(2, 2), padding='valid', activation='relu')(x)
+    x = conv2d_transpose_sn(x, 128, (3, 3), strides=(2, 2), padding='valid', name='sn_conv_gen_transposed02', activation=tf.nn.relu)
     x = layers.BatchNormalization()(x)
-    x = layers.Conv2DTranspose(64, (3, 3), padding='valid', activation='relu')(x)
+    x = conv2d_transpose_sn(x, 64, (3, 3), padding='valid', name='sn_conv_gen_transposed03', activation=tf.nn.relu)
     x = layers.BatchNormalization()(x)
-    x = layers.Conv2D(3, (3, 3), padding='same', kernel_initializer=tf.initializers.random_uniform(minval=0, maxval=2.))(x)
+    x = conv2d_sn(x, 3, (3, 3), name="sn_gen_conv01", padding='same', kernel_initializer=tf.initializers.random_uniform(minval=0, maxval=2.), activation=tf.nn.relu)
     return x
 
 # import tensorflow as tf
@@ -35,9 +35,9 @@ def generator_fn(x, latent_dim=LATENT_DIM):
 # model = tf.keras.models.Sequential()
 # model.add(l.Dense(3 * 3 * 256, activation='relu', input_shape=(64,)))
 # model.add(l.Reshape((3, 3, 256)))
-# model.add(l.Conv2DTranspose(256, (5, 5), strides=(2, 2), padding='same', activation='relu'))
-# model.add(l.Conv2DTranspose(256, (3, 3), strides=(2, 2), padding='same', activation='relu'))
-# model.add(l.Conv2DTranspose(256, (3, 3), strides=(1, 1), padding='same', activation='relu'))
+# model.add(l.Conv2DTranspose(256, (4, 4), strides=(2, 2), padding='same', activation='relu'))
+# model.add(l.Conv2DTranspose(128, (3, 3), strides=(2, 2), padding='valid', activation='relu'))
+# model.add(l.Conv2DTranspose(64, (3, 3), strides=(1, 1), padding='same', activation='relu'))
 # model.summary()
 
 
@@ -66,7 +66,7 @@ def discriminator_fn(x, drop_rate=0.25):
     return x
 
 
-def discrimintator_loss(model, add_summaries=True):
+def discriminator_loss(model, add_summaries=True):
 
     loss = tf.contrib.gan.losses.wasserstein_discriminator_loss(model, add_summaries=add_summaries)
     gp_loss = GP * tf.contrib.gan.losses.wasserstein_gradient_penalty(model, epsilon=1e-10, one_sided=True, add_summaries=add_summaries)
@@ -83,7 +83,7 @@ gan_estimator = tfgan.estimator.GANEstimator(
     generator_fn=generator_fn,
     discriminator_fn=discriminator_fn,
     generator_loss_fn=tfgan.losses.wasserstein_generator_loss,
-    discriminator_loss_fn=discrimintator_loss,
+    discriminator_loss_fn=discriminator_loss,
     generator_optimizer=tf.train.AdamOptimizer(GEN_LR, 0.5, 0.9),
     discriminator_optimizer=tf.train.AdamOptimizer(DIS_LR, 0.5, 0.9),
     get_hooks_fn=tfgan.get_sequential_train_hooks(tfgan.GANTrainSteps(1, N_CRIT)),
@@ -91,14 +91,14 @@ gan_estimator = tfgan.estimator.GANEstimator(
     use_loss_summaries=True)
 
 
-def batched_dataset(BATCH_SIZE, LATENT_DIM, generator_fn):
+def calo_batched_dataset(BATCH_SIZE, LATENT_DIM, generator_fn):
     Dataset = tf.data.Dataset.from_generator(
         lambda: generator_fn(LATENT_DIM), output_types=(tf.float32, tf.float32),
         output_shapes=(tf.TensorShape((LATENT_DIM,)), tf.TensorShape((15, 15, 3))))
     return Dataset.batch(BATCH_SIZE)
 
 
-def generator(LATENT_DIM):
+def calo_data_generator(LATENT_DIM):
     while True:
         calo_ims = np.load("data/3_layer_calorimeter_padded.npz")['data']
         nsamples = calo_ims.shape[0]
@@ -113,18 +113,31 @@ def generator(LATENT_DIM):
 
 
 import itertools
-images = np.array(list(itertools.islice(generator(LATENT_DIM), 4)))[:, 1]
+images = np.array(list(itertools.islice(calo_data_generator(LATENT_DIM), 10000)))[:, 1]
 images = 10**images - 1
-plot_calo_images(images, fname=dir + "/original_calorimeter_images.png")
+plot_calo_images(images[0:3], fname=dir + "/original_calorimeter_images.png")
+plot_average_image(np.mean(images, axis=0), fname=dir + "/average_over_10000_images.png")
 
 
-for loop in range(0, 600):
-    gan_estimator.train(lambda: batched_dataset(BATCH_SIZE, LATENT_DIM, generator), steps=ITER)
-    result = gan_estimator.predict(lambda: batched_dataset(BATCH_SIZE, LATENT_DIM, generator))
+for loop in range(0, 100):
+    gan_estimator.train(lambda: calo_batched_dataset(BATCH_SIZE, LATENT_DIM, calo_data_generator), steps=ITER)
+    result = gan_estimator.predict(lambda: calo_batched_dataset(BATCH_SIZE, LATENT_DIM, calo_data_generator))
     images = []
-    for i, image in enumerate(result):
+    for i, image in zip(range(16), result):
         images.append(10**image - 1)
-        if i == 15:
-            plot_calo_images(np.array(images), fname=dir + "/generated_images_%.3i.png" % loop)
-        if i == 999:
-            plot_average_image(np.mean(np.array(images), axis=0), fname=dir + "/average_over_1000_images.png")
+    images = np.array(images)
+    plot_calo_images(images, fname=dir + "/generated_images_%.3i.png" % loop)
+
+
+generated = []
+for i, image in zip(range(10000), result):
+    generated.append(10**image - 1)
+generated = np.array(generated)
+plot_average_image(np.mean(generated, axis=0), fname=dir + "/generated_average_over_10000_images.png")
+
+from utils import plot_layer_correlations, plot_cell_number_histo
+calo_ims = np.load("data/3_layer_calorimeter_padded.npz")['data']
+plot_layer_correlations(np.sum(calo_ims, axis=(1, 2)), datatype='data', fname=dir + "/original_corr.png")
+plot_layer_correlations(np.sum(generated, axis=(1, 2)), datatype='generated', fname=dir + "/generated_corr.png")
+
+plot_cell_number_histo(fake=np.sum(generated > 0, axis=(1, 2, 3)), data=np.sum(calo_ims > 0, axis=(1, 2, 3)), log_dir=dir)

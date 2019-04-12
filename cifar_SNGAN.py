@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from utils import make_dir, plot_images, conv2d_transpose_sn, conv2d_sn, dense_sn
+from utils import make_dir, plot_images, conv2d_transpose_sn, conv2d_sn, dense_sn, CookbookInit
 layers = tf.layers
 tfgan = tf.contrib.gan
 
@@ -10,12 +10,10 @@ LATENT_DIM = 128
 GEN_LR = 0.0002
 DIS_LR = 0.0002
 ITER = 1000
-LOG_DIR = "."
 GP = 10
 N_CRIT = 1
 
-dir = make_dir(LOG_DIR, "CIFAR_SNGAN")
-
+dir = CookbookInit("CIFAR_SNGAN")
 
 # Build the generator and discriminator.
 def generator_fn(x, latent_dim=LATENT_DIM):

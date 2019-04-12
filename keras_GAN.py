@@ -2,21 +2,19 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from gan import make_trainable
-from utils import make_dir, plot_images
+from utils import make_dir, plot_images, CookbookInit
 
 layers = keras.layers
 models = keras.models
 optimizers = keras.optimizers
 
-log_dir = make_dir(".", "cifar_keras_vanilla_GAN")
+log_dir = CookbookInit("color_cifar_keras_vanilla_GAN")
 
 # prepare CIFAR10 dataset
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+# x_train = utils.grayscale(x_train)
 x_train = 2 * (x_train / 255. - 0.5)
-x_test = 2 * (x_test / 255. - 0.5)
-
 # plot some real images
-idx = np.random.choice(len(x_train), 16)
 plot_images(255 * (x_train[:16] / 2. + 0.5), fname=log_dir + '/real_images.png')
 
 # --------------------------------------------------
@@ -41,6 +39,8 @@ x = layers.Conv2DTranspose(128, (5, 5), strides=(2, 2), padding='same', activati
 x = layers.BatchNormalization()(x)
 x = layers.Conv2DTranspose(64, (5, 5), strides=(2, 2), padding='same', activation='relu')(x)
 x = layers.BatchNormalization()(x)
+x = layers.Conv2DTranspose(64, (5, 5), padding='same', activation='relu')(x)
+x = layers.BatchNormalization()(x)
 x = layers.Conv2D(3, (3, 3), padding='same', activation='tanh')(x)
 generator = models.Model(inputs=generator_input, outputs=x)
 print(generator.summary())
@@ -49,24 +49,22 @@ print(generator.summary())
 # Set up discriminator
 print('\nDiscriminator')
 discriminator_input = layers.Input(shape=[32, 32, 3])
-x = layers.Conv2D(64, (3, 3), strides=(2, 2), padding='same', input_shape=(32, 32, 3))(discriminator_input)
+x = layers.Conv2D(64, (3, 3), strides=(2, 2), padding='same')(discriminator_input)
 x = layers.LeakyReLU(0.2)(x)
 x = layers.Conv2D(128, (4, 4), padding='same', strides=(2, 2))(x)
-x = layers.BatchNormalization()(x)
 x = layers.LeakyReLU(0.2)(x)
 x = layers.Conv2D(256, (4, 4), padding='same', strides=(2, 2))(x)
-x = layers.BatchNormalization()(x)
 x = layers.LeakyReLU(0.2)(x)
 x = layers.Conv2D(512, (4, 4), padding='same', strides=(2, 2))(x)
-x = layers.BatchNormalization()(x)
 x = layers.LeakyReLU(0.2)(x)
 x = layers.Flatten()(x)
-x = layers.Dense(2, activation='softmax')(x)
+x = layers.Dropout(0.4)(x)
+x = layers.Dense(2, activation='softmax', kernel_regularizer=keras.regularizers.l1_l2(0.001))(x)
 discriminator = models.Model(inputs=discriminator_input, outputs=x)
 
 
 print(discriminator.summary())
-d_opt = optimizers.Adam(lr=0.0003, beta_1=0.5, beta_2=0.999)
+d_opt = optimizers.Adam(lr=2e-4, beta_1=0.5, decay=0.0005)
 discriminator.compile(loss='binary_crossentropy', optimizer=d_opt, metrics=['accuracy'])
 
 # Set up GAN by stacking the discriminator on top of the generator
@@ -75,7 +73,7 @@ gan_input = layers.Input(shape=[latent_dim])
 gan_output = discriminator(generator(gan_input))
 GAN = models.Model(gan_input, gan_output)
 print(GAN.summary())
-g_opt = optimizers.Adam(lr=0.0004, beta_1=0.5, beta_2=0.999)
+g_opt = optimizers.Adam(lr=2e-4, beta_1=0.5, decay=0.0005)
 make_trainable(discriminator, False)  # freezes the discriminator when training the GAN
 GAN.compile(loss='binary_crossentropy', optimizer=g_opt)
 
@@ -88,7 +86,7 @@ discriminator_acc = []
 # main training loop
 
 batch_size = 64
-for epoch in range(100):
+for epoch in range(150):
 
     # Plot some fake images
     noise = np.random.randn(batch_size, latent_dim)
@@ -118,7 +116,6 @@ for epoch in range(100):
         # change here for label switching
         y2 = np.zeros([batch_size, 2])
         y2[:, 1] = 1  # classical loss
-        # y2[:, 0] = 1  # label switching
 
         # Train the generator part of the GAN on the mini-batch
         g_loss = GAN.train_on_batch(noise_tr, y2)
@@ -129,7 +126,7 @@ for epoch in range(100):
 # train_for_n(epochs=10, batch_size=128)
 #
 # # - Plot the loss of discriminator and generator as function of iterations
-
+generator.save(log_dir + "/generator.h5")
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
