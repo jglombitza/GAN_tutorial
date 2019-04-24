@@ -181,7 +181,7 @@ def plot_signal_map(footprint, axis, label, event=None, hex=False):
     axis.set_title("Layer %i" % (label+1), loc='right')
     if event is not None:
         axis.set_title('Event %i' % (event+1), loc='left')
-    circles = axis.scatter(xd[filter], yd[filter], c=footprint[filter], s=80, alpha=1, label="loud", norm=matplotlib.colors.LogNorm(vmin=None, vmax=500))
+    circles = axis.scatter(xd[filter], yd[filter], c=footprint[filter], s=80, alpha=1, label="loud", norm=matplotlib.colors.LogNorm(vmin=1, vmax=500))
     # cbar = plt.colorbar(circles, ax=axis)
     # cbar.set_label('signal [a.u.]')
     axis.set_aspect('equal')
@@ -202,6 +202,7 @@ def plot_calo_images(images, fname):
     cbar = fig.colorbar(scat, cax=cbar_ax)
     cbar.set_label('signal [a.u.]')
     fig.savefig(fname, dpi=120)
+    plt.close('all')
 
 
 def plot_average_image(image, fname):
@@ -220,13 +221,13 @@ def plot_average_image(image, fname):
 def plot_layer_correlations(image, datatype='', fname=None):
     fig, axis = plt.subplots(1, 3, figsize=(11, 4))
     fig.suptitle(datatype)
-    axis[0].hexbin(image[:, 0], image[:, 1], linewidth=0.3, mincnt=1, gridsize=50)
+    axis[0].hexbin(image[:, 0], image[:, 1], linewidth=0.3, mincnt=1, gridsize=50, extent=[0, 700, 0, 1300])
     axis[0].set_xlabel("Total signal layer 1")
     axis[0].set_ylabel("Total signal layer 2")
-    axis[1].hexbin(image[:, 0], image[:, 2], linewidth=0.3, mincnt=1, gridsize=50)
+    axis[1].hexbin(image[:, 0], image[:, 2], linewidth=0.3, mincnt=1, gridsize=50, extent=[0, 700, 0, 900])
     axis[1].set_xlabel("Total signal layer 1")
     axis[1].set_ylabel("Total signal layer 3")
-    axis[2].hexbin(image[:, 1], image[:, 2], linewidth=0.3, mincnt=1, gridsize=50)
+    axis[2].hexbin(image[:, 1], image[:, 2], linewidth=0.3, mincnt=1, gridsize=50, extent=[0, 1300, 0, 900])
     axis[2].set_xlabel("Total signal layer 2")
     axis[2].set_ylabel("Total signal layer 3")
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
