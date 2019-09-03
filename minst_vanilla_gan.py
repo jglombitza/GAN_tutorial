@@ -31,11 +31,11 @@ def generator_fn(x, latent_dim=LATENT_DIM):
 
 def discriminator_fn(x, drop_rate=0.25):
     """ Discriminator network """
-    x = layers.Conv2D(32, (5, 5), padding='same', strides=(2, 2), activation='relu', input_shape=(28, 28, 1))(x)
+    x = layers.Conv2D(32, (5, 5), padding='same', strides=(2, 2), input_shape=(28, 28, 1))(x)
     x = tf.nn.leaky_relu(x, 0.2)
-    x = layers.Conv2D(64, (5, 5), padding='same', strides=(2, 2), activation='relu')(x)
+    x = layers.Conv2D(64, (5, 5), padding='same', strides=(2, 2))(x)
     x = tf.nn.leaky_relu(x, 0.2)
-    x = layers.Conv2D(128, (5, 5), padding='same', strides=(2, 2), activation='relu')(x)
+    x = layers.Conv2D(128, (5, 5), padding='same', strides=(2, 2))(x)
     x = tf.nn.leaky_relu(x, 0.2)
     x = layers.Flatten()(x)
     x = layers.Dense(256)(x)
